@@ -28,6 +28,7 @@
     "@injectivelabs/token-utils": "next",
     "@injectivelabs/ts-types": "next",
     "@injectivelabs/utils": "next",
-    "@injectivelabs/wallet-ts": "next"
+    "@injectivelabs/wallet-ts": "next",
+    "@keplr-wallet/types": "^0.12.42"
   }
 }

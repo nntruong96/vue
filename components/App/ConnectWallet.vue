@@ -1,150 +1,112 @@
 <script setup lang="ts">
-import { getAddresses, walletStrategy, getPubKey } from '@/app/services/wallet';
-import {
-  MsgSend,
-  ChainRestAuthApi,
-  ChainRestTendermintApi,
-  BaseAccount,
-  createTransaction,
-  getTxRawFromTxRawOrDirectSignResponse,
-  CosmosTxV1Beta1Tx,
-  TxRestClient,
-  BroadcastMode,
-} from '@injectivelabs/sdk-ts';
-import {
-  DEFAULT_STD_FEE,
-  DEFAULT_BLOCK_TIMEOUT_HEIGHT,
-  BigNumberInBase,
-} from '@injectivelabs/utils';
-import { ChainId } from '@injectivelabs/ts-types';
-import { Network, getNetworkEndpoints } from '@injectivelabs/networks';
+import { getAddresses, walletStrategy } from '@/app/services/wallet';
+import { prepareSignAndBroadcastKeplr } from '@/utils/Keplr';
+import ModalSelectWallet from './ModalSelectWallet.vue';
 import { onMounted } from 'vue';
+import { setStore, getStore } from '@/utils';
+import { getInjectiveAddress } from '@injectivelabs/sdk-ts';
+import { Wallet } from '@injectivelabs/wallet-ts';
+// import { prepareSignAndBroadcastMetaMask } from '@/utils/MetaMask';
 const address = ref('');
+const isOpenModal = ref(false);
+const txHash = ref('');
+const requesting = ref(false);
+const error = ref('');
+const walletSelect = ref(getStore(Constants.STORAGE.wallet));
 onMounted(async () => {
   await handleConnectWallet();
 });
-const getKeplr = async (chainId: ChainId) => {
-  await window.keplr.enable(chainId);
-  const offlineSigner = window.keplr.getOfflineSigner(chainId);
-  const accounts = await offlineSigner.getAccounts();
-  const key = await window.keplr.getKey(chainId);
-  return { offlineSigner, accounts, key, keplr: window.keplr };
-};
-const broadcastTx = async (chainId: ChainId, txRaw: any) => {
-  const { keplr } = await getKeplr(ChainId.Testnet);
-  console.log('1');
-  let result;
-  result = await keplr.sendTx(
-    chainId,
-    CosmosTxV1Beta1Tx.TxRaw.encode(txRaw).finish(),
-    BroadcastMode.Sync
-  );
 
-  console.log('2', result);
-  if (!result || result.length === 0) {
-    throw new Error('Transaction failed to be broadcasted');
+const prepare = async () => {
+  requesting.value = true;
+  error.value = '';
+  let res;
+  try {
+    if (walletSelect.value === Wallet.Metamask) {
+      res = await prepareSignAndBroadcastMetaMask(address.value);
+    } else {
+      res = await prepareSignAndBroadcastKeplr(address.value);
+    }
+    if (!res) {
+      throw 'Some thing when wrong';
+    }
+    console.log(res);
+    txHash.value = res?.txHash || '';
+  } catch (e: any) {
+    error.value = e?.message || e;
   }
-
-  return Buffer.from(result).toString('hex');
+  requesting.value = false;
 };
 async function handleConnectWallet() {
-  if (!address.value) {
+  if (!address.value && walletSelect.value) {
+    walletStrategy.setWallet(walletSelect.value);
     let _address = await getAddresses();
-    address.value = _address[0];
+    if (walletSelect.value === Wallet.Metamask) {
+      address.value = getInjectiveAddress(_address[0]);
+    } else {
+      address.value = _address[0];
+    }
   }
 }
-async function prepare() {
-  try {
-    const injectiveAddress = address.value;
-    const chainId = ChainId.Testnet;
-    const restEndpoint = getNetworkEndpoints(Network.Testnet).rest;
-    const amount = {
-      amount: new BigNumberInBase(0.01).toWei().toFixed(),
-      denom: 'inj',
-    };
-
-    /** Account Details **/
-    const chainRestAuthApi = new ChainRestAuthApi(restEndpoint);
-    const accountDetailsResponse = await chainRestAuthApi.fetchAccount(
-      injectiveAddress
-    );
-    const baseAccount = BaseAccount.fromRestApi(accountDetailsResponse);
-    // const accountDetails = baseAccount.toAccountDetails();
-
-    /** Block Details */
-    const chainRestTendermintApi = new ChainRestTendermintApi(restEndpoint);
-    const latestBlock = await chainRestTendermintApi.fetchLatestBlock();
-    const latestHeight = latestBlock.header.height;
-    const timeoutHeight = new BigNumberInBase(latestHeight).plus(
-      DEFAULT_BLOCK_TIMEOUT_HEIGHT
-    );
-    const pubKey = await getPubKey();
-    /** Preparing the transaction */
-    const msg = MsgSend.fromJSON({
-      amount,
-      srcInjectiveAddress: injectiveAddress,
-      dstInjectiveAddress: injectiveAddress,
-    });
-
-    /** Prepare the Transaction **/
-    const { signDoc } = createTransaction({
-      pubKey,
-      chainId,
-      fee: DEFAULT_STD_FEE,
-      message: msg,
-      sequence: baseAccount.sequence,
-      timeoutHeight: timeoutHeight.toNumber(),
-      accountNumber: baseAccount.accountNumber,
-    });
-
-    /* Sign the Transaction */
-    console.log('signDoc', signDoc);
-    const { directSignResponse } = await signTransaction(signDoc);
-    console.log('directSignResponse', directSignResponse);
-    await broadcast(directSignResponse);
-  } catch (err) {
-    console.log(err);
-  }
-}
-const broadcast = async (directSignResponse: any) => {
-  const txRaw = getTxRawFromTxRawOrDirectSignResponse(directSignResponse);
-
-  const txHash = await broadcastTx(ChainId.Testnet, txRaw);
-  const restEndpoint = getNetworkEndpoints(Network.Testnet).rest;
-  const txRestClient = new TxRestClient(restEndpoint);
-
-  /** This will poll querying the transaction and await for it's inclusion in the block */
-  const response = await txRestClient.fetchTxPoll(txHash);
-  console.log('response', response);
-};
-
-const signTransaction = async (signDoc: any) => {
-  const { offlineSigner } = await getKeplr(ChainId.Testnet);
-  const directSignResponse = await offlineSigner.signDirect(
-    address.value,
-    signDoc
-  );
-  return { directSignResponse };
-};
-
 const disconnect = async () => {
   await walletStrategy.disconnectWallet();
+  walletSelect.value = '';
+  setStore(Constants.STORAGE.wallet, '');
   address.value = '';
+};
+const handleSelectWallet = async (wallet: { key: string }) => {
+  walletSelect.value = wallet.key;
+  setStore(Constants.STORAGE.wallet, wallet.key);
+  handleConnectWallet();
+};
+const onClose = () => {
+  isOpenModal.value = false;
+};
+const handleOpenModal = () => {
+  if (address.value) {
+    return;
+  }
+  isOpenModal.value = true;
 };
 </script>
 
 <template>
   <div class="flex">
-    <AppButton @click="handleConnectWallet">{{
+    <AppButton @click="handleOpenModal">{{
       address
-        ? `${address.slice(0, 4)}...${address.slice(-5)}`
+        ? `${walletSelect}: ${address.slice(0, 6)}...${address.slice(-8)}`
         : 'Connect Wallet'
     }}</AppButton>
+    <AppButtonSecondary
+      v-if="address"
+      @click="disconnect"
+      class="button-disconnect"
+      >Disconnect</AppButtonSecondary
+    >
     <br />
     <br />
-    <button v-if="address" @click="prepare">Prepare</button>
+    <AppButtonSecondary v-if="address" @click="prepare" :disabled="requesting"
+      >Prepare Sign and Broadcast</AppButtonSecondary
+    >
+    <br />
+    <p>{{ txHash }}</p>
     <br />
     <br />
-    <button v-if="address" @click="disconnect">Disconnect</button>
+    <p v-if="Boolean(error)">Error: {{ error }}</p>
+
+    <br />
+    <br />
+
+    <ModalSelectWallet
+      :isOpen="isOpenModal"
+      :onClose="onClose"
+      :onSelectWallet="handleSelectWallet"
+    />
   </div>
 </template>
+
+<style scoped>
+.button-disconnect {
+  margin-left: 12px;
+}
+</style>

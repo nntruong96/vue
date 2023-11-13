@@ -1692,7 +1692,22 @@
     long "^4.0.0"
     protobufjs "^6.11.2"
 
-"@keplr-wallet/types@^0.11.58", "@keplr-wallet/types@0.11.64":
+"@keplr-wallet/types@^0.11.58":
+  version "0.11.64"
+  resolved "https://registry.npmjs.org/@keplr-wallet/types/-/types-0.11.64.tgz"
+  integrity sha512-GgzeLDHHfZFyne3O7UIfFHj/uYqVbxAZI31RbBwt460OBbvwQzjrlZwvJW3vieWRAgxKSITjzEDBl2WneFTQdQ==
+  dependencies:
+    axios "^0.27.2"
+    long "^4.0.0"
+
+"@keplr-wallet/types@^0.12.42":
+  version "0.12.42"
+  resolved "https://registry.npmjs.org/@keplr-wallet/types/-/types-0.12.42.tgz"
+  integrity sha512-o+BkY45xsONTzqTrmfL/ZU+I9dp6ACqB0dhmlRg4E03NRoj2olggWPgt7TPnoM3aB6rt+XK//kbrHvc9bRQrRA==
+  dependencies:
+    long "^4.0.0"
+
+"@keplr-wallet/types@0.11.64":
   version "0.11.64"
   resolved "https://registry.npmjs.org/@keplr-wallet/types/-/types-0.11.64.tgz"
   integrity sha512-GgzeLDHHfZFyne3O7UIfFHj/uYqVbxAZI31RbBwt460OBbvwQzjrlZwvJW3vieWRAgxKSITjzEDBl2WneFTQdQ==

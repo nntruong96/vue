@@ -8,21 +8,23 @@
 button {
   font-size: 1rem;
   cursor: pointer;
-  transform: skewX(-30deg);
   border: none;
   color: white;
-  border-left: 2px solid lightgreen;
-  border-right: 2px solid lightgreen;
+  border-radius: 20px; /* Bo tròn góc */
   padding: 0.5rem 1rem;
-  background: none;
+  /* Gradient màu tím không gian, từ tím nhẹ đến tím đậm */
+  background-image: linear-gradient(to right, #8a2387, #6e48aa);
   transition: all 0.3s;
 }
 button:hover {
-  background-color: lightgreen;
-  color: black;
+  color: white;
+  /* Tăng độ sáng của gradient khi hover */
+  background-image: linear-gradient(to right, #8a2387, #8a2387);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); /* Thêm bóng đổ */
 }
-
-button div {
-  transform: skewX(30deg);
+button:disabled {
+  background-image: linear-gradient(to right, #8a2387, #8a2387) !important;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2) !important; /* Thêm bóng đổ */
+  cursor: not-allowed !important;
 }
 </style>

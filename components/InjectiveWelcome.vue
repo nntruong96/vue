@@ -15,7 +15,7 @@
   box-sizing: border-box;
 }
 body {
-  background: #151518;
+  background: #1f1f1f;
   color: white;
   font-family: Arial, Helvetica, sans-serif;
 }

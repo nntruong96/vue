@@ -13,7 +13,6 @@ export const walletStrategy = new WalletStrategy({
     ethereumChainId: ETHEREUM_CHAIN_ID,
     rpcUrl: alchemyRpcEndpoint,
   },
-  wallet: Wallet.Keplr,
 });
 
 export const getAddresses = async (): Promise<string[]> => {
